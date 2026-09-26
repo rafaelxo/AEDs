@@ -12,6 +12,7 @@ public class BuscaEmGrafo {
 
     public static Scanner sc = new Scanner(System.in);
 
+    @SuppressWarnings("unchecked")
     public static void main(String[] args) {
         System.out.print("Insira o nome do arquivo: ");
         String nomeArquivo = sc.nextLine().trim();
@@ -30,7 +31,7 @@ public class BuscaEmGrafo {
             int n = Integer.parseInt(firstToken);
             int m = scanner.nextInt();
 
-            adj = new ArrayList[n + 1];
+            adj = (List<Integer>[]) new ArrayList[n + 1];
             for (int i = 1; i <= n; i++) {
                 adj[i] = new ArrayList<>();
             }
@@ -49,15 +50,16 @@ public class BuscaEmGrafo {
             d = new int[n + 1];
             f = new int[n + 1];
 
-            System.out.println("\n Arestas de Arvore Encontradas (Grafo Completo)");
+            System.out.println("\nArestas de Árvore Encontradas (Grafo Completo):");
 
             for (int i = 1; i <= n; i++) {
-                if (color[i] == 0) dfsVisit(i);
+                if (color[i] == 0)
+                    dfsVisit(i);
             }
 
-            System.out.println("\n Classificacao das Arestas Saindo do Vertice " + targetVertex);
+            System.out.println("\nClassificação das Arestas Saindo do Vértice " + targetVertex + ": ");
             if (targetClassifications.isEmpty()) {
-                System.out.println("Nenhuma aresta sai do vertice " + targetVertex + ".");
+                System.out.println("Nenhuma aresta sai do vértice " + targetVertex + ".");
             } else {
                 for (String edge : targetClassifications) {
                     System.out.println(edge);
@@ -65,41 +67,56 @@ public class BuscaEmGrafo {
             }
 
         } catch (FileNotFoundException e) {
-            System.out.println("Erro: O arquivo especificado nao foi encontrado.");
+            System.out.println("Erro: O arquivo especificado não foi encontrado.");
         } catch (Exception e) {
-            System.out.println("Erro durante a execucao: " + e.getMessage());
+            System.out.println("Erro durante a execução: " + e.getMessage());
         }
     }
 
-    static void dfsVisit(int u) {
-        color[u] = 1;
-        time++;
-        d[u] = time;
+    static void dfsVisit(int startNode) {
+        Stack<Integer> stack = new Stack<>();
+        int[] edgeIndex = new int[color.length];
 
-        for (int v : adj[u]) {
-            if (u == targetVertex) {
-                if (color[v] == 0) {
-                    targetClassifications.add(u + " -> " + v + " : Aresta de Arvore");
-                } else if (color[v] == 1) {
-                    targetClassifications.add(u + " -> " + v + " : Aresta de Retorno");
-                } else if (color[v] == 2) {
-                    if (d[u] < d[v]) {
-                        targetClassifications.add(u + " -> " + v + " : Aresta de Avanco");
-                    } else {
-                        targetClassifications.add(u + " -> " + v + " : Aresta de Cruzamento");
+        color[startNode] = 1;
+        time++;
+        d[startNode] = time;
+        stack.push(startNode);
+
+        while (!stack.isEmpty()) {
+            int u = stack.peek();
+
+            if (edgeIndex[u] < adj[u].size()) {
+                int v = adj[u].get(edgeIndex[u]);
+                edgeIndex[u]++;
+
+                if (u == targetVertex) {
+                    if (color[v] == 0) {
+                        targetClassifications.add(u + " -> " + v + " = Aresta de Árvore");
+                    } else if (color[v] == 1) {
+                        targetClassifications.add(u + " -> " + v + " = Aresta de Retorno");
+                    } else if (color[v] == 2) {
+                        if (d[u] < d[v]) {
+                            targetClassifications.add(u + " -> " + v + " = Aresta de Avanço");
+                        } else {
+                            targetClassifications.add(u + " -> " + v + " = Aresta de Cruzamento");
+                        }
                     }
                 }
-            }
 
-            if (color[v] == 0) {
-                System.out.println(u + " -> " + v);
-                dfsVisit(v);
+                if (color[v] == 0) {
+                    System.out.println(u + " -> " + v);
+                    color[v] = 1;
+                    time++;
+                    d[v] = time;
+                    stack.push(v);
+                }
+            } else {
+                stack.pop();
+                color[u] = 2;
+                time++;
+                f[u] = time;
             }
         }
-
-        color[u] = 2;
-        time++;
-        f[u] = time;
     }
 
     static class FastScanner {
@@ -114,7 +131,8 @@ public class BuscaEmGrafo {
             while (st == null || !st.hasMoreElements()) {
                 try {
                     String line = br.readLine();
-                    if (line == null) return null;
+                    if (line == null)
+                        return null;
                     st = new StringTokenizer(line);
                 } catch (IOException e) {
                     e.printStackTrace();
