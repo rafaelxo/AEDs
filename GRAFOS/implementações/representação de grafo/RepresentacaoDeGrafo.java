@@ -1,7 +1,7 @@
 import java.util.*;
 import java.io.*;
 
-public class RepresentacaoGrafo {
+public class RepresentacaoDeGrafo {
     public static Scanner sc = new Scanner(System.in);
 
     public static void main(String[] args) {
