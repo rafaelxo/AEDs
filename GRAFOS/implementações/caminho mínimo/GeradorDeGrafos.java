@@ -1,9 +1,8 @@
-import java.io.BufferedWriter;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.util.HashSet;
-import java.util.Random;
-import java.util.Set;
+import java.io.*;
+import java.nio.file.Path;
+import java.nio.file.Files;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
 
 /**
  * Gera 8 instancias reproduziveis de grafos direcionados e ponderados.
@@ -17,34 +16,35 @@ import java.util.Set;
  * - fortemente conexos: o ciclo 1->2->...->n->1 garante um
  *   caminho entre quaisquer dois vertices;
  * - a semente fixa permite gerar exatamente os mesmos arquivos.
- *
- * Execucao: java GeradorDeGrafos
- * ATENCAO: sobrescreve arquivos de mesmo nome na pasta atual.
  */
 public class GeradorDeGrafos {
     private static final long SEMENTE_BASE = 20261008L;
 
     public static void main(String[] args) {
+        if (args.length > 1) {
+            System.err.println("Uso: java GeradorDeGrafos [diretorio_de_saida]");
+            System.exit(1);
+        }
+        Path diretorio = Path.of(args.length == 1 ? args[0] : ".");
         int[] tamanhosTipo1 = {1000, 5000, 10000, 50000};
         int[] tamanhosTipo2 = {100, 500, 1000, 2000};
 
         try {
+            Files.createDirectories(diretorio);
             System.out.println("Gerando grafos direcionados com pesos positivos...");
 
             for (int n : tamanhosTipo1) {
                 int m = 3 * n;
                 String arquivo = "grafo_tipo1_" + n + ".txt";
-                gerarGrafo(n, m, arquivo, SEMENTE_BASE + 1_000_003L + n);
-                System.out.println("Tipo 1 (esparso): " + arquivo +
-                        " | V=" + n + " | A=" + m);
+                gerarGrafo(n, m, diretorio.resolve(arquivo).toString(), SEMENTE_BASE + 1_000_003L + n);
+                System.out.println("Tipo 1 (esparso): " + arquivo + " | V=" + n + " | A=" + m);
             }
 
             for (int n : tamanhosTipo2) {
-                int m = (n * n) / 4;
+                int m = Math.toIntExact((long) n * n / 4);
                 String arquivo = "grafo_tipo2_" + n + ".txt";
-                gerarGrafo(n, m, arquivo, SEMENTE_BASE + 2_000_003L + n);
-                System.out.println("Tipo 2 (denso): " + arquivo +
-                        " | V=" + n + " | A=" + m);
+                gerarGrafo(n, m, diretorio.resolve(arquivo).toString(), SEMENTE_BASE + 2_000_003L + n);
+                System.out.println("Tipo 2 (denso): " + arquivo + " | V=" + n + " | A=" + m);
             }
 
             System.out.println("\nOs 8 grafos foram gerados com sucesso!");
@@ -62,27 +62,21 @@ public class GeradorDeGrafos {
         }
         long maximoArestas = (long) n * (n - 1);
         if (m < n || m > maximoArestas) {
-            throw new IllegalArgumentException("Para garantir conectividade forte e arestas " +
-                "unicas, m deve estar entre n e " + maximoArestas + ".");
+            throw new IllegalArgumentException("Para garantir conectividade forte e arestas " + "unicas, m deve estar entre n e " + maximoArestas + ".");
         }
 
         Random aleatorio = new Random(semente);
-        // A codificacao (u, v) -> u*(n+1)+v identifica unicamente cada arco.
         Set<Long> arestasUsadas = new HashSet<>();
 
-        try (BufferedWriter saida = new BufferedWriter(new FileWriter(nomeArquivo), 65536)) {
+        try (BufferedWriter saida = new BufferedWriter(Files.newBufferedWriter(Path.of(nomeArquivo), StandardCharsets.UTF_8), 65536)) {
             saida.write(n + " " + m);
             saida.newLine();
 
-            // Reserva n arestas que formam um ciclo direcionado e garantem
-            // um caminho entre qualquer par de vertices.
             for (int u = 1; u <= n; u++) {
                 int v = (u == n) ? 1 : u + 1;
-                registrarAresta(saida, arestasUsadas, n, u, v,
-                        aleatorio.nextInt(20) + 1);
+                registrarAresta(saida, arestasUsadas, n, u, v, aleatorio.nextInt(20) + 1);
             }
 
-            // Completa a quantidade de arestas sem lacos nem duplicatas.
             int quantidadeCriada = n;
             while (quantidadeCriada < m) {
                 int u = aleatorio.nextInt(n) + 1;
@@ -96,15 +90,13 @@ public class GeradorDeGrafos {
                     continue;
                 }
 
-                registrarAresta(saida, arestasUsadas, n, u, v,
-                        aleatorio.nextInt(20) + 1);
+                registrarAresta(saida, arestasUsadas, n, u, v, aleatorio.nextInt(20) + 1);
                 quantidadeCriada++;
             }
         }
     }
 
-    private static void registrarAresta(BufferedWriter saida, Set<Long> usadas,
-                                       int n, int u, int v, int peso) throws IOException {
+    private static void registrarAresta(BufferedWriter saida, Set<Long> usadas, int n, int u, int v, int peso) throws IOException {
         usadas.add(chaveAresta(n, u, v));
         saida.write(u + " " + v + " " + peso);
         saida.newLine();

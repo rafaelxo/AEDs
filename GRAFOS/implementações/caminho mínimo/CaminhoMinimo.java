@@ -1,4 +1,7 @@
 import java.io.*;
+import java.nio.file.Path;
+import java.nio.file.Files;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 public class CaminhoMinimo {
@@ -41,7 +44,11 @@ public class CaminhoMinimo {
             if (comparacao != 0) {
                 return comparacao;
             }
-            return Integer.compare(this.quantidadeArestas, outro.quantidadeArestas);
+            comparacao = Integer.compare(this.quantidadeArestas, outro.quantidadeArestas);
+            if (comparacao != 0) {
+                return comparacao;
+            }
+            return Integer.compare(this.vertice, outro.vertice);
         }
     }
 
@@ -80,8 +87,7 @@ public class CaminhoMinimo {
                 System.out.print("Vertice de destino: ");
                 destino = Integer.parseInt(teclado.nextLine().trim());
             } else {
-                throw new IllegalArgumentException(
-                    "Uso: java CaminhoMinimo <arquivo.txt> <origem> <destino>");
+                throw new IllegalArgumentException("Uso: java CaminhoMinimo <arquivo.txt> <origem> <destino>");
             }
 
             long inicioTotal = System.nanoTime();
@@ -102,12 +108,9 @@ public class CaminhoMinimo {
             System.out.println("Arestas do grafo: " + grafo.quantidadeArestas);
             System.out.println("\nOrigem: " + origem + " | Destino: " + destino);
             exibirResultado(resultado);
-            System.out.printf(Locale.US, "\nTempo de leitura: %.3f ms%n",
-                    (fimLeitura - inicioTotal) / 1_000_000.0);
-            System.out.printf(Locale.US, "Tempo do algoritmo: %.3f ms%n",
-                    (fimAlgoritmo - fimLeitura) / 1_000_000.0);
-            System.out.printf(Locale.US, "Tempo total (leitura + algoritmo): %.3f ms%n",
-                    (fimAlgoritmo - inicioTotal) / 1_000_000.0);
+            System.out.printf(Locale.US, "\nTempo de leitura: %.3f ms%n",(fimLeitura - inicioTotal) / 1_000_000.0);
+            System.out.printf(Locale.US, "Tempo do algoritmo: %.3f ms%n",(fimAlgoritmo - fimLeitura) / 1_000_000.0);
+            System.out.printf(Locale.US, "Tempo total (leitura + algoritmo): %.3f ms%n",(fimAlgoritmo - inicioTotal) / 1_000_000.0);
 
         } catch (IOException | IllegalArgumentException e) {
             System.err.println("Erro: " + e.getMessage());
@@ -115,7 +118,7 @@ public class CaminhoMinimo {
         }
     }
 
-    @SuppressWarnings({"unchecked", "rawtypes"})
+    @SuppressWarnings({"unchecked"})
     private static Grafo lerGrafo(String nomeArquivo) throws IOException {
         try (LeitorRapido leitor = new LeitorRapido(nomeArquivo)) {
             int n = leitor.proximoInt();
@@ -145,14 +148,15 @@ public class CaminhoMinimo {
                         "Aresta " + (i + 1) + ": o peso deve ser estritamente positivo.");
                 }
 
-                // Grafo direcionado: adiciona somente u -> v.
                 adj[u].add(new Aresta(v, peso));
+            }
+            if (leitor.proximo() != null) {
+                throw new IOException("Arquivo contem dados excedentes apos as " + m + " arestas declaradas.");
             }
             return new Grafo(n, m, adj);
         }
     }
 
-    /** Dijkstra com prioridade lexicografica (distancia, numero de arestas). */
     private static Resultado encontrarCaminhoMinimo(Grafo grafo, int origem, int destino) {
         int n = grafo.vertices;
         long[] dist = new long[n + 1];
@@ -172,13 +176,10 @@ public class CaminhoMinimo {
             Estado atual = fila.poll();
             int u = atual.vertice;
 
-            // Descarta estados antigos, inclusive quando houve desempate por arestas.
             if (atual.distancia != dist[u] ||
                 atual.quantidadeArestas != arestas[u]) {
                 continue;
             }
-
-            // Com pesos positivos, a primeira retirada valida do destino e otima.
             if (u == destino) {
                 break;
             }
@@ -233,7 +234,7 @@ public class CaminhoMinimo {
         private StringTokenizer tokens;
 
         LeitorRapido(String nomeArquivo) throws IOException {
-            leitor = new BufferedReader(new FileReader(nomeArquivo), 65536);
+            leitor = new BufferedReader(Files.newBufferedReader(Path.of(nomeArquivo), StandardCharsets.UTF_8), 65536);
         }
 
         String proximo() throws IOException {
