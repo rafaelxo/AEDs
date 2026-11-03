@@ -6,15 +6,14 @@ import java.util.*;
 
 /**
  * Gera 8 instancias reproduziveis de grafos direcionados e ponderados.
- * Tipo 1 (esparso): m = 3*n
- * Tipo 2 (denso):   m = n*n/4
+ * Esparso: m = 3*n
+ * Denso:   m = n*n/4
  *
  * Garantias:
  * - vertices de 1 a n;
  * - pesos inteiros positivos de 1 a 20;
  * - nenhuma aresta u->u e nenhuma aresta direcionada duplicada;
- * - fortemente conexos: o ciclo 1->2->...->n->1 garante um
- *   caminho entre quaisquer dois vertices;
+ * - fortemente conexos: o ciclo 1->2->...->n->1 garante um caminho entre quaisquer dois vertices;
  * - a semente fixa permite gerar exatamente os mesmos arquivos.
  */
 public class GeradorDeGrafos {
@@ -35,14 +34,14 @@ public class GeradorDeGrafos {
 
             for (int n : tamanhosTipo1) {
                 int m = 3 * n;
-                String arquivo = "grafo_tipo1_" + n + ".txt";
+                String arquivo = "grafo_esparso_" + n + ".txt";
                 gerarGrafo(n, m, diretorio.resolve(arquivo).toString(), SEMENTE_BASE + 1_000_003L + n);
                 System.out.println("Tipo 1 (esparso): " + arquivo + " | V=" + n + " | A=" + m);
             }
 
             for (int n : tamanhosTipo2) {
                 int m = Math.toIntExact((long) n * n / 4);
-                String arquivo = "grafo_tipo2_" + n + ".txt";
+                String arquivo = "grafo_denso_" + n + ".txt";
                 gerarGrafo(n, m, diretorio.resolve(arquivo).toString(), SEMENTE_BASE + 2_000_003L + n);
                 System.out.println("Tipo 2 (denso): " + arquivo + " | V=" + n + " | A=" + m);
             }
