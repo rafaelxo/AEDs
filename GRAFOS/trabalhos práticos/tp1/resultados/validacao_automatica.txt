@@ -1,0 +1,15 @@
+java -cp out grafos.SelfTest
+[1] Figura 1 do enunciado
+[2] Remo??o e restaura??o exata de arestas
+[3] Pontes: na?ve, na?ve-early e Tarjan vs. or?culo (union-find)
+    (600 grafos aleat?rios pequenos comparados)
+[4] Classifica??o euleriana vs. for?a bruta (busca exaustiva de trilha euleriana)
+    (euleriano=656, semi=1088, n?o=617)
+[5] Fleury em grafos aleat?rios gerados (3 classes ? 4 estrat?gias)
+    (420 grafos euleriano/semi-euleriano resolvidos por 4 estrat?gias)
+[6] Fleury em grafos maiores (n = 2.000): Tarjan e na?ve-early id?nticos e v?lidos
+[7] Casos de borda
+[8] Entrada/sa?da e validador
+
+31385 verifica??es, 0 falhas (8.7 s)
+RESULTADO: TODOS OS TESTES PASSARAM

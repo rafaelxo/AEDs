@@ -1,0 +1,621 @@
+\documentclass[12pt,a4paper]{article}
+
+% Compilador: pdfLaTeX (arquivo independente)
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[brazil]{babel}
+\usepackage{lmodern}
+\usepackage{geometry}
+\usepackage{setspace}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs,array}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{tikz}
+\usepackage{pgfplots}
+\usepackage{hyperref}
+\usepackage{fancyhdr}
+\usepackage{needspace}
+\usepackage{listings}
+\usepackage{enumitem}
+
+\pgfplotsset{compat=1.18}
+\geometry{a4paper,left=3cm,right=2cm,top=2.5cm,bottom=2.5cm}
+\onehalfspacing
+\hypersetup{
+    colorlinks=true,
+    linkcolor=black,
+    urlcolor=black,
+    pdftitle={Identificação de Pontes e Caminhos Eulerianos},
+    pdfauthor={Rafael Xavier Oliveira; Thales Duque Câmara; Gabriel Teotônio de Castro Coelho Costa}
+}
+
+\setlength{\parindent}{1.25cm}
+\setlength{\parskip}{0.2em}
+\pagestyle{fancy}
+\setlength{\headheight}{15pt}
+\fancyhf{}
+\fancyhead[R]{\small Pontes e caminhos eulerianos}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0pt}
+\lstset{
+    basicstyle=\ttfamily\footnotesize,
+    columns=fullflexible,
+    breaklines=true,
+    showstringspaces=false,
+    numbers=none,
+    frame=none
+}
+\setlist[itemize]{itemsep=3pt,topsep=5pt}
+\newcommand{\ordem}[1]{\mathcal{O}\!\left(#1\right)}
+\newcommand{\naive}{na\"ive}
+
+\begin{document}
+
+% =========================================================
+% CAPA
+% =========================================================
+\begin{titlepage}
+  \begin{center}
+    {\large Pontifícia Universidade Católica de Minas Gerais}\\[1cm]
+    {\large Ciência da Computação}\\[3.8cm]
+
+    {\large Trabalho Prático n.º 01}\\[0.7cm]
+
+    {\bfseries\LARGE IDENTIFICAÇÃO DE PONTES E\\[0.3cm]
+    CAMINHOS EULERIANOS}\\[0.9cm]
+
+    {\large Comparação entre os métodos naïve e de Tarjan\\
+    aplicados ao algoritmo de Fleury}\\[3.4cm]
+
+    {\large Rafael Xavier Oliveira}\\[0.3cm]
+    {\large Thales Duque Câmara}\\[0.3cm]
+    {\large Gabriel Teotônio de Castro Coelho Costa}\\[0.7cm]
+    {\large Professor: Zenilton Kleber Gonçalves do Patrocínio Júnior}\\[2.2cm]
+
+    {\large Belo Horizonte --- 2026}
+  \end{center}
+\end{titlepage}
+
+\section{Introdução}
+A modelagem por grafos permite estudar redes de comunicação, transporte e
+interdependência entre elementos. Para um grafo simples não direcionado
+$G=(V,E)$, com $n=|V|$ vértices e $m=|E|$ arestas, uma \emph{ponte} é uma
+aresta cuja retirada aumenta o número de componentes conexas.
+A identificação de pontes é especialmente relevante para o método de Fleury,
+que percorre cada aresta de um grafo exatamente uma vez, quando isso é possível.
+
+O trabalho tem três objetivos: implementar um detector de pontes por força
+bruta, implementar o algoritmo linear de Tarjan e empregar os dois métodos
+no algoritmo de Fleury. Para avaliar a eficiência, são utilizados grafos de
+três classes eulerianas, em quatro ordens de grandeza de tamanho.
+Além dos requisitos obrigatórios, o projeto oferece testes independentes,
+geração reprodutível de instâncias e variantes experimentais que ajudam a
+interpretar os resultados.
+
+\section{Fundamentação teórica}
+\subsection{Conectividade e pontes}
+Uma aresta $e=\{u,v\}$ é ponte se, e somente se, não existe outro caminho
+entre $u$ e $v$ depois da remoção de $e$. Em grafos não direcionados, isso
+também equivale a dizer que $e$ não participa de nenhum ciclo.
+A definição vale inclusive para grafos inicialmente desconexos: nesse caso,
+a ponte é a aresta cuja remoção aumenta o número de componentes conexas.
+
+\subsection{Critério de existência de um caminho euleriano}
+Uma trilha euleriana utiliza cada aresta exatamente uma vez. Se o vértice
+final coincide com o inicial, a trilha é um circuito euleriano.
+Desconsiderando vértices isolados, um grafo não direcionado possui:
+\begin{itemize}
+  \item \textbf{Circuito euleriano:} quando é conexo e todos os vértices têm grau par;
+  \item \textbf{Caminho euleriano aberto:} quando é conexo e exatamente dois vértices têm grau ímpar;
+  \item \textbf{Nenhum caminho euleriano:} quando a condição de conectividade falha ou quando existem mais de dois vértices ímpares.
+\end{itemize}
+Se o grafo tem dois vértices ímpares, o caminho deve iniciar em um deles
+e terminar no outro. A contagem dos graus e uma busca de conectividade
+permitem decidir a existência de um percurso em $\ordem{n+m}$.
+
+\subsection{Identificação de pontes pelo método naïve}
+O método \naive{} considera cada aresta $e=\{u,v\}$ em separado:
+remove temporariamente $e$, realiza uma BFS ou DFS a partir de $u$
+e verifica se $v$ continua alcançável. Caso contrário, $e$ é ponte.
+Depois, a aresta é restaurada. Uma busca tem custo $\ordem{n+m}$;
+como isso pode ocorrer para cada uma das $m$ arestas, o custo total é
+\begin{equation}
+T_{\text{naive}}(n,m)=\ordem{m(n+m)}.
+\end{equation}
+Uma otimização útil interrompe a busca assim que $v$ é alcançado
+(\emph{early exit}). A resposta não muda, mas o tempo médio pode cair.
+
+\subsection{Identificação de pontes por Tarjan}
+O algoritmo de Tarjan executa uma única DFS e mantém os seguintes valores:
+$disc[u]$, a ordem de descoberta de $u$, e $low[u]$, o menor tempo de
+descoberta de um ancestral alcançável a partir da subárvore de $u$
+por arestas de árvore e, no máximo, uma aresta de retorno.
+Para uma aresta de árvore $(u,v)$, com $u$ pai de $v$, vale:
+\begin{equation}\label{eq:tarjan}
+\boxed{(u,v)\text{ é ponte}\quad\Longleftrightarrow\quad low[v]>disc[u].}
+\end{equation}
+Se $low[v]\le disc[u]$, há um caminho alternativo que fecha um ciclo;
+se $low[v]>disc[u]$, a subárvore de $v$ depende daquela aresta
+para se conectar aos ancestrais. Como cada vértice e aresta é visitado
+um número constante de vezes, a complexidade é $\ordem{n+m}$.
+
+\subsection{Algoritmo de Fleury}
+Fleury constrói um percurso consumindo uma aresta a cada passo. A regra
+central é evitar atravessar uma ponte do \emph{grafo residual} sempre que
+houver outra aresta incidente disponível. Se o grau ativo do vértice
+corrente é um, essa aresta é obrigatória.
+
+\begin{lstlisting}[caption={Pseudocódigo do algoritmo de Fleury.}]
+FLEURY(G, estrategia):
+    se G nao satisfaz as condicoes de Euler:
+        retornar NAO_EXISTE
+    u = vertice impar, se houver; senao vertice com arestas
+    caminho = [u]
+    enquanto houver arestas:
+        se grauAtivo(u) == 1:
+            e = unica aresta incidente
+        senao:
+            e = primeira aresta incidente que nao e ponte
+                segundo a estrategia escolhida
+        remover e do grafo residual
+        u = outra extremidade de e
+        adicionar u a caminho
+    retornar caminho
+\end{lstlisting}
+
+Uma execução de Fleury realiza $m$ passos. Se Tarjan é recalculado
+integralmente a cada decisão, o limite superior é $\ordem{m(n+m)}$.
+Se o método \naive{} identifica \emph{todas} as pontes em cada passo,
+o limite chega a $\ordem{m^2(n+m)}$. Entretanto, ao testar apenas
+as arestas candidatas de Fleury, normalmente basta uma ou duas buscas
+por passo. Nesse caso, o limite superior volta a ser $\ordem{m(n+m)}$.
+
+\begin{table}[H]
+\centering\small
+\caption{Comparação das complexidades assintóticas.}
+\label{tab:complexidade}
+\begin{tabular}{@{}p{7.0cm}p{5.1cm}@{}}
+\toprule
+Procedimento & Limite superior \\
+\midrule
+Busca BFS/DFS & $\ordem{n+m}$ \\
+Todas as pontes: método naïve & $\ordem{m(n+m)}$ \\
+Todas as pontes: Tarjan & $\ordem{n+m}$ \\
+Fleury + Tarjan recalculado & $\ordem{m(n+m)}$ \\
+Fleury + naïve sob demanda & $\ordem{m(n+m)}$ \\
+Fleury + naïve para todas as arestas & $\ordem{m^2(n+m)}$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Implementação em Java}
+O projeto foi organizado no pacote \texttt{grafos}, sem bibliotecas externas.
+A Tabela~\ref{tab:arquivos} apresenta os arquivos centrais da implementação.
+
+\begin{table}[H]
+\centering\small
+\caption{Principais classes do projeto.}
+\label{tab:arquivos}
+\begin{tabular}{@{}p{5cm}p{7.2cm}@{}}
+\toprule
+Classe & Responsabilidade \\
+\midrule
+\texttt{Graph} & Estrutura do grafo e remoção/restauração de arestas. \\
+\texttt{Reach} & BFS para testes de alcançabilidade. \\
+\texttt{NaiveBridgeFinder} & Identificação naïve de pontes. \\
+\texttt{TarjanBridgeFinder} & DFS iterativa com vetores de descoberta e retorno. \\
+\texttt{EulerChecker} & Verificação das condições eulerianas. \\
+\texttt{BridgeStrategy} e \texttt{Strategies} & Integração dos detectores ao Fleury. \\
+\texttt{Fleury} & Construção de caminhos ou circuitos eulerianos. \\
+\texttt{GraphGenerator} & Geração determinística de grafos aleatórios. \\
+\texttt{EulerPathValidator} & Validação independente das arestas percorridas. \\
+\texttt{Benchmark}, \texttt{SelfTest}, \texttt{StressTest} & Experimentos e testes automatizados. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Representação do grafo}
+O grafo usa listas de adjacência em vetores contíguos. Cada aresta
+possui identificador estável; os graus ativos e as posições das arestas
+são atualizados quando ocorre uma remoção lógica. A restauração desfaz
+as alterações da última remoção, permitindo repetir testes de pontes
+sem modificar permanentemente o grafo. A DFS de Tarjan é iterativa,
+com pilha explícita, para evitar estouro da pilha de chamadas com
+100.000 vértices.
+
+\subsection{Pseudocódigo dos detectores}
+\begin{lstlisting}[caption={Detecção de todas as pontes por força bruta.}]
+PONTES_NAIVE(G):
+    pontes = conjunto vazio
+    para cada aresta e=(u,v):
+        remover_temporariamente(e)
+        conectados = BFS_ALCANCA(G,u,v)
+        restaurar(e)
+        se nao conectados: adicionar e a pontes
+    retornar pontes
+\end{lstlisting}
+
+\begin{lstlisting}[caption={Regra de Tarjan em uma DFS; no Java a busca é iterativa.}]
+TARJAN(u):
+    disc[u] = low[u] = tempo++
+    para cada aresta e=(u,v) diferente da aresta do pai:
+        se v nao foi visitado:
+            pai[v] = u
+            TARJAN(v)
+            low[u] = min(low[u], low[v])
+            se low[v] > disc[u]: marcar e como ponte
+        senao:
+            low[u] = min(low[u], disc[v])
+\end{lstlisting}
+
+\subsection{Estratégias utilizadas pelo Fleury}
+Foram implementadas quatro estratégias para interpretar tanto a comparação
+principal quanto o custo de computar pontes sob demanda:
+\begin{itemize}
+\item \texttt{tarjan}: recalcula as pontes do grafo residual por DFS;
+\item \texttt{naive}: percorre toda a componente para testar cada candidata;
+\item \texttt{naive-early}: interrompe a BFS ao encontrar o destino;
+\item \texttt{naive-all}: identifica todas as pontes por força bruta em cada decisão.
+\end{itemize}
+As duas abordagens requeridas são Tarjan e naïve; as variantes adicionais
+servem somente para explicar diferenças de desempenho.
+
+\subsection{Exemplo de funcionamento}
+Considere um triângulo com vértices $0,1,2$ e o caminho $2-3-4$.
+As arestas $\{2,3\}$ e $\{3,4\}$ são pontes porque não participam de
+ciclos. Os únicos vértices de grau ímpar são $2$ e $4$; portanto, há
+um caminho euleriano aberto.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[scale=1.05, every node/.style={font=\sffamily\small}]
+  \coordinate (a) at (0,0); \coordinate (b) at (2,0);
+  \coordinate (c) at (1,1.7); \coordinate (d) at (3.6,1.7);
+  \coordinate (e) at (5.6,1.7);
+  \draw[thick] (a)--(b)--(c)--cycle;
+  \draw[very thick,dashed] (c)--(d)--(e);
+  \foreach \p/\lab in {a/0,b/1,c/2,d/3,e/4}{
+    \filldraw[fill=white,draw=black,thick] (\p) circle (0.19);
+    \node at (\p) {\lab};
+  }
+  \node[above] at (2.3,2.05) {pontes};
+\end{tikzpicture}
+\caption{Exemplo de grafo semieuleriano: as arestas tracejadas são pontes.}
+\label{fig:exemplo}
+\end{figure}
+
+Um percurso correto de Fleury é
+$2\rightarrow0\rightarrow1\rightarrow2\rightarrow3\rightarrow4$.
+As cinco arestas aparecem exatamente uma vez. Fleury evita atravessar
+$2-3$ enquanto as arestas do triângulo ainda precisam ser percorridas.
+
+
+\noindent\textbf{Grafo da Figura 1 do enunciado.}
+O programa também inclui o grafo original de exemplo com nove vértices
+($A$ a $I$) e quinze arestas. A rotina \texttt{Main demo} encontra uma
+única ponte, $\{F,G\}$, tanto pelo método \naive{} quanto por Tarjan.
+Os vértices de grau ímpar são $A$ e $G$, e Fleury encontra o caminho:
+\[
+A\to D\to F\to C\to B\to A\to E\to B\to D\to C
+\to E\to F\to G\to I\to H\to G.
+\]
+O validador independente confirma que todas as quinze arestas foram
+percorridas exatamente uma vez, sem alterar o grafo de entrada.
+
+\subsection{Geração e validação dos grafos}
+O gerador começa com um ciclo hamiltoniano aleatorizado e acrescenta
+ciclos curtos, garantindo graus pares e conexidade. A remoção de uma
+aresta de um grafo euleriano produz um grafo semieuleriano; a remoção
+de duas arestas sem extremos comuns produz quatro vértices ímpares,
+caracterizando um grafo não euleriano. As sementes são fixas para permitir
+reprodução. Há ainda um gerador de grafos conexos com árvore aleatória e
+arestas adicionais, útil para testar instâncias com muitas pontes.
+
+A validação confere a quantidade de vértices do caminho, a adjacência
+dos consecutivos e o uso de cada aresta exatamente uma vez. Os testes
+principais registrados realizaram 31.385 verificações sem falhas; uma
+bateria adicional de estresse verificou grafos com até 100.000 vértices.
+
+\section{Metodologia experimental}
+\subsection{Ambiente e procedência dos dados}
+Os resultados preservados nos CSVs do projeto consolidado foram obtidos
+em ambiente Linux Ubuntu 24.04, com processador Intel Xeon de 2,30 GHz,
+7,8 GiB de RAM e OpenJDK 21. A medição empregou
+\texttt{System.nanoTime()}, aquecimento da JVM e verificação posterior
+dos caminhos. Os tempos são apresentados com as unidades originais;
+não correspondem a um novo benchmark executado na máquina de entrega.
+
+\subsection{Planejamento dos experimentos}
+Foram utilizados quatro tamanhos: $n\in\{100,1000,10000,100000\}$.
+No experimento principal, o grau médio foi aproximadamente quatro
+($m\approx2n$). O número de repetições diminuiu com o tamanho,
+por causa do crescimento do tempo de Fleury:
+\begin{itemize}
+\item E1: Fleury com Tarjan, naïve e naïve com parada antecipada;
+\item E2: Fleury com naïve recalculando todas as pontes;
+\item E3: comparação isolada dos algoritmos de detecção de pontes;
+\item E4: sensibilidade de Fleury ao aumento de densidade.
+\end{itemize}
+
+Os números representam médias aritméticas das execuções concluídas.
+Os resultados de 100.000 vértices incluem apenas duas repetições para
+grafos eulerianos e uma para cada uma das outras classes, o que limita
+a precisão estatística. Os dados originais permitem repetir e ampliar
+os testes em outras máquinas.
+
+\section{Resultados}
+\subsection{E1: Fleury em grafos eulerianos e semieulerianos}
+A Tabela~\ref{tab:principal} reúne os tempos médios de Fleury nas duas
+classes para as quais existe caminho euleriano. A versão \texttt{naive-early}
+teve o menor tempo nos grafos desta família.
+
+\begin{table}[H]
+\centering\small
+\caption{Fleury: tempos médios dos experimentos históricos.}
+\label{tab:principal}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}llrrrrr@{}}
+\toprule
+Classe & $n$ & $m$ aprox. & Reps. & Tarjan & Naïve & Naïve (early exit) \\
+\midrule
+Euleriano & 100 & 202 & 200 & 0,20 ms & 0,17 ms & 0,069 ms \\
+ & 1.000 & 2.003 & 50 & 20,5 ms & 12,8 ms & 4,51 ms \\
+ & 10.000 & 20.002 & 10 & 3,36 s & 1,44 s & 0,487 s \\
+ & 100.000 & 200.004 & 2 & 18,7 min & 3,96 min & 75,5 s \\
+\midrule
+Semieuleriano & 100 & 202 & 200 & 0,21 ms & 0,15 ms & 0,068 ms \\
+ & 1.000 & 2.002 & 50 & 20,5 ms & 12,7 ms & 4,52 ms \\
+ & 10.000 & 20.001 & 10 & 3,26 s & 1,45 s & 0,486 s \\
+ & 100.000 & 200.002 & 1 & 18,4 min & 3,95 min & 77,4 s \\
+\bottomrule
+\end{tabular}}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+\begin{loglogaxis}[
+ width=0.87\textwidth,height=6.1cm,
+ xlabel={Número de vértices $n$},ylabel={Tempo médio (ms)},
+ xtick={100,1000,10000,100000},
+ xticklabels={$10^2$,$10^3$,$10^4$,$10^5$},
+ grid=both,legend pos=north west,
+ legend style={font=\footnotesize},tick label style={font=\footnotesize}]
+\addplot+[black,mark=square*,thick] coordinates
+ {(100,0.19932) (1000,20.53424) (10000,3357.45606) (100000,1123317.80107)};
+\addlegendentry{Fleury + Tarjan}
+\addplot+[black!65,mark=*,thick,dashed] coordinates
+ {(100,0.16771) (1000,12.78916) (10000,1438.20416) (100000,237500.40057)};
+\addlegendentry{Fleury + Naïve}
+\addplot+[black!45,mark=triangle*,thick,dotted] coordinates
+ {(100,0.06948) (1000,4.50621) (10000,486.61040) (100000,75496.74912)};
+\addlegendentry{Fleury + Naïve early exit}
+\end{loglogaxis}
+\end{tikzpicture}
+\caption{Crescimento do tempo de Fleury em grafos eulerianos (eixos logarítmicos).}
+\label{fig:fleury}
+\end{figure}
+
+Nos grafos não eulerianos, o teste inicial de paridade encontrou quatro
+vértices ímpares e o percurso foi corretamente rejeitado, sem necessidade
+de executar a escolha de arestas de Fleury. A Tabela~\ref{tab:naoeuleriano}
+registra os tempos dessa checagem, que não representam travessias completas.
+
+\begin{table}[H]
+\centering\small
+\caption{Grafos não eulerianos: tempo médio de rejeição do percurso ($\mu$s).}
+\label{tab:naoeuleriano}
+\begin{tabular}{@{}rrrrr@{}}
+\toprule
+$n$ & Repetições & Tarjan & Naïve & Naïve (early exit) \\
+\midrule
+100 & 200 & 1,05 & 0,77 & 1,53 \\
+1.000 & 50 & 1,10 & 0,82 & 0,76 \\
+10.000 & 10 & 19,48 & 16,53 & 17,42 \\
+100.000 & 1 & 249,10 & 353,44 & 333,39 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Esses tempos são pequenos porque o programa interrompe a execução
+após a verificação dos graus. Para os menores grafos, valores inferiores
+a poucos microssegundos devem ser interpretados com cautela devido à
+resolução do relógio e às oscilações da JVM.
+
+\subsection{E2: Fleury com força bruta sobre todas as pontes}
+A variante \texttt{naive-all} calcula novamente o conjunto completo de
+pontes em cada passo de decisão. Esse procedimento é substancialmente
+mais caro que testar apenas as candidatas.
+
+\begin{table}[H]
+\centering\small
+\caption{Fleury com naïve aplicado a todas as arestas do grafo residual.}
+\label{tab:naiveall}
+\begin{tabular}{@{}llrr@{}}
+\toprule
+Classe & $n$ & Naïve-todas & Tarjan \\
+\midrule
+Euleriano & 100 & 23,3 ms & 0,20 ms \\
+Euleriano & 1.000 & 21,5 s & 20,9 ms \\
+Euleriano & 10.000 & $>120$ s (limite) & 3,26 s \\
+Semieuleriano & 100 & 17,4 ms & 0,19 ms \\
+Semieuleriano & 1.000 & 21,6 s & 20,8 ms \\
+Semieuleriano & 10.000 & $>120$ s (limite) & 3,18 s \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+O limite de 120 segundos foi atingido nas instâncias de 10.000 vértices
+antes da conclusão do percurso. Portanto, os valores registrados como
+limite de tempo não são médias completas nem devem ser interpretados
+como tempos exatos do algoritmo.
+
+\subsection{E3: detecção isolada de todas as pontes}
+Para comparar os detectores sem a interferência de Fleury, foram usados
+grafos conexos aleatórios com grau médio três, contendo pontes.
+
+\begin{table}[H]
+\centering\small
+\caption{Detecção completa de pontes: tempos médios históricos.}
+\label{tab:pontes}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}rrrrrrr@{}}
+\toprule
+$n$ & $m$ & Reps. & Pontes & Tarjan & Naïve & Naïve (early exit) \\
+\midrule
+100 & 150 & 100 & 20 & 31,1 $\mu$s & 0,40 ms & 0,28 ms \\
+1.000 & 1.500 & 50 & 212 & 0,24 ms & 32,6 ms & 12,9 ms \\
+10.000 & 15.000 & 10 & 2.123 & 0,64 ms & 3,00 s & 1,26 s \\
+100.000 & 150.000 & 1 & 21.122 & 16,7 ms & 7,59 min & 3,25 min \\
+\bottomrule
+\end{tabular}}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+\begin{loglogaxis}[
+ width=0.86\textwidth,height=6.2cm,
+ xlabel={Número de vértices $n$},ylabel={Tempo médio (ms)},
+ xtick={100,1000,10000,100000},
+ xticklabels={$10^2$,$10^3$,$10^4$,$10^5$},
+ grid=both,legend pos=north west,
+ legend style={font=\footnotesize},tick label style={font=\footnotesize}]
+\addplot+[black,mark=square*,thick] coordinates
+ {(100,0.03113) (1000,0.23541) (10000,0.64426) (100000,16.73522)};
+\addlegendentry{Tarjan}
+\addplot+[black!65,mark=*,thick,dashed] coordinates
+ {(100,0.40175) (1000,32.64271) (10000,2999.69903) (100000,455275.81582)};
+\addlegendentry{Naïve}
+\addplot+[black!45,mark=triangle*,thick,dotted] coordinates
+ {(100,0.27789) (1000,12.89392) (10000,1264.72704) (100000,194708.68781)};
+\addlegendentry{Naïve early exit}
+\end{loglogaxis}
+\end{tikzpicture}
+\caption{Detecção isolada de pontes, em escala logarítmica.}
+\label{fig:pontes}
+\end{figure}
+
+Para 100.000 vértices, Tarjan levou 16,7 ms, enquanto o método
+\naive{} levou aproximadamente 7,59 minutos. A razão obtida no
+registro histórico foi de aproximadamente 27 mil vezes. Isso é
+compatível com os limites $\ordem{n+m}$ e $\ordem{m(n+m)}$ em grafos
+esparsos, embora uma única execução não permita estimar a variabilidade.
+
+\subsection{E4: efeito da densidade}
+Para $n=1.000$ vértices eulerianos, aumentou-se o grau médio de
+aproximadamente quatro para 32, mantendo a classificação euleriana.
+
+\begin{table}[H]
+\centering\small
+\caption{Fleury em grafos eulerianos de 1.000 vértices, variando o grau médio.}
+\label{tab:densidade}
+\begin{tabular}{@{}rrrrr@{}}
+\toprule
+Grau médio & $m$ & Tarjan & Naïve & Naïve (early exit) \\
+\midrule
+4 & 2.003 & 28,4 ms & 17,6 ms & 6,22 ms \\
+8 & 4.002 & 105 ms & 55,4 ms & 16,8 ms \\
+16 & 8.002 & 359 ms & 157 ms & 37,4 ms \\
+32 & 16.003 & 1,17 s & 412 ms & 66,6 ms \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+\begin{loglogaxis}[
+ width=0.86\textwidth,height=6.1cm,
+ xlabel={Número de arestas $m$},ylabel={Tempo médio (ms)},
+ grid=both,legend pos=north west,
+ legend style={font=\footnotesize},tick label style={font=\footnotesize}]
+\addplot+[black,mark=square*,thick] coordinates
+ {(2003,28.44667) (4002,105.37502) (8002,359.02060) (16003,1172.96196)};
+\addlegendentry{Tarjan}
+\addplot+[black!65,mark=*,thick,dashed] coordinates
+ {(2003,17.63670) (4002,55.42889) (8002,157.33488) (16003,412.18028)};
+\addlegendentry{Naïve}
+\addplot+[black!45,mark=triangle*,thick,dotted] coordinates
+ {(2003,6.21997) (4002,16.79876) (8002,37.44380) (16003,66.63545)};
+\addlegendentry{Naïve early exit}
+\end{loglogaxis}
+\end{tikzpicture}
+\caption{Impacto da densidade no tempo de Fleury, mantendo $n=1.000$.}
+\label{fig:densidade}
+\end{figure}
+
+À medida que a densidade aumentou, o percentual de passos forçados
+caiu de aproximadamente 50\% para 6,2\%. Mesmo assim, a verificação
+local das arestas candidatas permaneceu mais rápida que o recálculo
+completo de todas as pontes por Tarjan neste conjunto de grafos.
+
+\section{Discussão}
+\subsection{Por que Tarjan ganha na detecção completa?}
+Na detecção de todas as pontes, Tarjan usa uma única DFS com marcações
+de descoberta e valores \emph{low}. O método \naive{} repete uma busca
+para cada aresta, causando crescimento muito mais rápido quando o
+número de vértices e arestas aumenta. O experimento E3 confirma
+qualitativamente essa diferença.
+
+\subsection{Por que o naïve local pode vencer dentro de Fleury?}
+Durante Fleury, somente as arestas incidentes ao vértice corrente
+precisam ser analisadas. Se a primeira aresta não é ponte, uma única
+BFS decide o passo. A estratégia Tarjan, por sua vez, recalcula o
+conjunto completo de pontes do grafo residual. Nos grafos usados,
+cerca de metade dos passos de Fleury já era forçada (grau ativo um),
+e nos demais a primeira candidata quase sempre era adequada.
+Isso explica por que o \naive{} sob demanda foi mais rápido nessas
+instâncias, sem contradizer a superioridade assintótica de Tarjan
+para identificação completa de pontes.
+
+\subsection{Limitações da comparação}
+Os resultados devem ser interpretados sob quatro restrições:
+\begin{itemize}
+\item os geradores produzem famílias de grafos específicas, não uma amostra uniforme de todos os grafos simples;
+\item as medições de 100.000 vértices possuem poucas repetições;
+\item os tempos dependem de hardware, JVM, aquecimento, coleta de lixo e ordenação das arestas;
+\item as estratégias realizam quantidades diferentes de trabalho em cada consulta, embora todas obedeçam à regra de Fleury.
+\end{itemize}
+O experimento de densidade amplia a análise, mas não elimina essas
+restrições. Um trabalho futuro poderia comparar outras topologias,
+mais sementes, diferentes máquinas e o algoritmo de Hierholzer,
+que encontra caminhos eulerianos em tempo linear no número de arestas.
+
+\section{Conclusão}
+Foram implementados dois métodos de detecção de pontes e quatro
+estratégias de integração ao algoritmo de Fleury. A aplicação inclui
+geradores aleatórios, verificador independente de caminhos eulerianos
+e testes automatizados, com casos pequenos e instâncias de até
+100.000 vértices.
+
+Na identificação isolada de todas as pontes, Tarjan apresentou o melhor
+desempenho, em conformidade com sua complexidade linear. Dentro de
+Fleury, entretanto, os testes locais do método \naive{} foram mais
+rápidos para as famílias esparsas e eulerianas avaliadas, porque evitam
+calcular pontes desnecessárias. A variante que recalcula todas as pontes
+por força bruta a cada passo mostrou-se inviável em grafos grandes.
+
+Portanto, a escolha do método de identificação de pontes deve levar
+em conta \emph{como e quantas vezes} ele será consultado. Tarjan é
+recomendável para a identificação global de pontes; o teste local pode
+ser vantajoso em aplicações que precisam decidir sobre poucas arestas
+por vez, como na implementação de Fleury analisada.
+
+\section*{Referências}
+\addcontentsline{toc}{section}{Referências}
+\begin{enumerate}[label={[\arabic*]},leftmargin=1.15cm]
+\item TARJAN, R. E. A note on finding the bridges of a graph.\
+\emph{Information Processing Letters}, v. 2, n. 6, p. 160--161, 1974.\
+\url{https://doi.org/10.1016/0020-0190(74)90003-9}.
+\item FLEURY, M. Deux problèmes de géométrie de situation.\
+\emph{Journal de mathématiques élémentaires}, 2e série, v. 2, p. 257--261, 1883.
+\item HIERHOLZER, C. Über die Möglichkeit, einen Linienzug ohne Wiederholung und ohne Unterbrechung zu umfahren.\
+\emph{Mathematische Annalen}, v. 6, p. 30--32, 1873.
+\item CORMEN, T. H. et al. \emph{Introduction to Algorithms}. 3. ed. MIT Press, 2009.
+\item WEST, D. B. \emph{Introduction to Graph Theory}. 2. ed. Prentice Hall, 2001.
+\end{enumerate}
+
+\end{document}

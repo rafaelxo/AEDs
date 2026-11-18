@@ -1,0 +1,4 @@
+experimento,rotulo,classe,n,m,rep,semente,estrategia,tempo_ms,status,passos,passos_total,valido,forcados,decisoes,testes,evitadas
+fleury,principal,euler,100000,200005,1,12348137036,tarjan,1114753.574160,ok,200005,200005,1,99999,100006,100063,57
+fleury,principal,euler,100000,200005,1,12348137036,naive,245387.028885,ok,200005,200005,1,99999,100006,100063,57
+fleury,principal,euler,100000,200005,1,12348137036,naive-early,74310.026623,ok,200005,200005,1,99999,100006,100063,57

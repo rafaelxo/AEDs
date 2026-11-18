@@ -1,0 +1,11 @@
+java -cp out grafos.StressTest
+Grafo euler n=10000 m=20001: classifica??o e simplicidade OK
+Fleury (euler) em n=10000: 20001 arestas, caminho validado pelas duas estrat?gias
+Grafo semi n=10000 m=20000: classifica??o e simplicidade OK
+Fleury (semi) em n=10000: 20000 arestas, caminho validado pelas duas estrat?gias
+Grafo non n=10000 m=19999: classifica??o e simplicidade OK
+Grafo euler n=100000 m=200004: classifica??o e simplicidade OK
+Grafo semi n=100000 m=200003: classifica??o e simplicidade OK
+Grafo non n=100000 m=200002: classifica??o e simplicidade OK
+Tarjan n=100000 m=150000: 21201 pontes, DFS iterativa OK
+STRESS TEST PASSOU: 37 checagens, 9.29 segundos
