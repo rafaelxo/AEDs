@@ -1,0 +1,18 @@
+TRABALHO PRATICO N.02 - RESULTADOS OFICIAIS JAVA
+Integrantes:
+- Rafael Xavier Oliveira
+- Thales Duque Câmara
+- Gabriel Teotônio de Castro Coelho Costa
+
+Instancias OR-Library: 40/40 processadas pelos dois metodos Java.
+Metodo exato: 13 otimos COMPROVADOS e 27 execucoes interrompidas no limite de 3000 ms.
+Correspondencia com referencia: 18 melhores raios iguais aos valores do enunciado (sem implicar prova em casos interrompidos).
+Melhoria estrita do exato sobre a heuristica: 33/40 instancias.
+Gap medio da heuristica: 32.69%; mediana: 32.88%.
+Gap medio das melhores solucoes da busca exata: 9.15%.
+Tempo mediano da heuristica: 34.53 ms.
+Tempo mediano da busca exata: 3001.41 ms (medicoes censuradas pelo limite).
+Pre-processamento medio por instancia: 383.93 ms.
+
+A auditoria independente dos 80 conjuntos de centros foi realizada e registrada em resultados/validacao_independente.txt.
+O relatorio latex/PDF contem a tabela completa, tempos, graficos, justificativas e limitacoes.

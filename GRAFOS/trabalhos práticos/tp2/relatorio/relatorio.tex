@@ -1,0 +1,577 @@
+
+\documentclass[12pt,a4paper]{article}
+% Compilacao: pdflatex relatorio.tex (duas passagens)
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[brazil]{babel}
+\usepackage{lmodern}
+\usepackage{geometry,setspace,amsmath,amssymb,booktabs,array,longtable}
+\usepackage{graphicx,float,tikz,pgfplots,listings,enumitem}
+\usepackage{fancyhdr,hyperref,microtype}
+\pgfplotsset{compat=1.18}
+\geometry{a4paper,left=3cm,right=2cm,top=2.5cm,bottom=2.5cm}
+\onehalfspacing
+\setlength{\parindent}{1.25cm}
+\setlength{\parskip}{0.2em}
+\setlength{\headheight}{15pt}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[R]{\small Problema dos $k$-centros}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\hypersetup{colorlinks=true,linkcolor=black,urlcolor=black,
+  pdftitle={Problema dos k-centros: metodos exato e aproximado},
+  pdfauthor={Rafael Xavier Oliveira; Thales Duque Camara; Gabriel Teotonio de Castro Coelho Costa}}
+\lstset{basicstyle=\ttfamily\footnotesize,columns=fullflexible,
+  breaklines=true,showstringspaces=false,frame=single,
+  numbers=none,aboveskip=6pt,belowskip=6pt}
+\setlist[itemize]{itemsep=3pt,topsep=5pt}
+\newcommand{\bigO}[1]{\mathcal O\!\left(#1\right)}
+\begin{document}
+\begin{titlepage}
+\begin{center}
+{\large Pontifícia Universidade Católica de Minas Gerais}\\[0.7cm]
+{\large Unidade Lourdes --- Ciência da Computação}\\[3.6cm]
+{\large Teoria dos Grafos e Computabilidade}\\[0.4cm]
+{\large Trabalho Prático n.º 02}\\[1cm]
+{\bfseries\LARGE O PROBLEMA DOS $k$-CENTROS}\\[0.6cm]
+{\large Implementação e comparação de uma solução\\
+exata e uma solução aproximada}\\[2.8cm]
+{\large Rafael Xavier Oliveira}\\[0.28cm]
+{\large Thales Duque Câmara}\\[0.28cm]
+{\large Gabriel Teotônio de Castro Coelho Costa}\\[0.75cm]
+{\large Professor: Zenilton Kleber Gonçalves do Patrocínio Júnior}\\[2.0cm]
+{\large Belo Horizonte --- 2026}
+\end{center}
+\end{titlepage}
+
+\section{Introdução}
+O problema dos $k$-centros consiste em selecionar até $k$ vértices de um
+conjunto de locais para minimizar a distância máxima que qualquer ponto
+precisará percorrer até o centro selecionado mais próximo. O critério é de
+\emph{minimização do pior atendimento}: diferentemente do problema das
+$p$-medianas, o objetivo não é minimizar a soma de todas as distâncias.
+Essa distinção é essencial para interpretar os dados e os valores de referência.
+
+O enunciado do Trabalho Prático n.º 02 solicita duas formas de resolução:
+um método exato, capaz de encontrar e demonstrar o valor ótimo em
+instâncias pequenas, e outro aproximado, aplicável a instâncias de maior porte.
+A implementação foi feita em Java, com leitura do formato OR-Library,
+preparação da matriz de distâncias, testes automatizados e exportação dos
+resultados em arquivos CSV. Conservou-se, como referência de organização,
+a estrutura em pastas e a interface por linha de comando do Trabalho Prático
+n.º 01, mas os algoritmos são específicos do novo problema.
+
+\section{Definição do problema}
+Seja $V$ um conjunto de $n$ vértices e $d(u,v)$ a menor distância entre
+$u$ e $v$. Deseja-se escolher $C\subseteq V$, com $1\leq |C|\leq k$, minimizando
+\begin{equation}\label{eq:objetivo}
+ r(C)=\max_{v\in V}\min_{c\in C}d(v,c).
+\end{equation}
+O valor $r(C)$ é chamado \emph{raio}. Para cada vértice, considera-se o
+centro mais próximo; entre os vértices, considera-se a maior dessas distâncias.
+O raio ótimo é $r^*=\min_{C,\,|C|\leq k}r(C)$.
+
+A matriz de distâncias deve satisfazer simetria, não negatividade,
+$d(v,v)=0$ e desigualdade triangular. Essas propriedades passam a valer
+ao substituir os pesos das arestas originais por distâncias de caminhos
+mínimos em um grafo não direcionado com custos não negativos.
+
+\subsection{Preparação das instâncias OR-Library}
+Cada arquivo \texttt{pmedN.txt} contém, na primeira linha, $n$, $m$ e $k$.
+Nas $m$ linhas seguintes aparecem vértice inicial, vértice final e custo
+da aresta. Os identificadores de vértices no arquivo começam em 1;
+internamente, passam a começar em 0. Os dados descrevem um \emph{grafo
+esparso}, e não uma matriz completa de distâncias. Por isso, antes de
+resolver $k$-centros, aplica-se Floyd--Warshall:
+\begin{equation}
+ d^{(t)}(i,j)=\min\left\{d^{(t-1)}(i,j),\,
+ d^{(t-1)}(i,t)+d^{(t-1)}(t,j)\right\}.
+\end{equation}
+A página oficial da OR-Library especifica um detalhe importante: se uma
+aresta não direcionada aparecer mais de uma vez, \textbf{o último custo
+lido substitui os anteriores}. A implementação segue exatamente essa regra,
+em vez de escolher indevidamente o menor custo entre duplicatas.
+O pré-processamento exige $\bigO{n^3}$ tempo e $\bigO{n^2}$ memória.
+
+\section{Algoritmo aproximado}
+Foi adotada a estratégia \emph{farthest-first} de Gonzalez, com início
+arbitrário: escolhe-se o primeiro centro, depois, a cada passo, seleciona-se
+o vértice cuja distância ao centro mais próximo é máxima. A cada inserção,
+atualiza-se para todos os vértices a menor distância a um centro escolhido.
+A técnica tem garantia de fator 2 em espaços métricos:
+\begin{equation}\label{eq:approx}
+ r_{\mathrm{FF}}\leq 2r^*.
+\end{equation}
+
+\begin{lstlisting}[caption={Construção aproximada dos centros (uma inicialização).}]
+GONZALEZ(d, k, inicio):
+    centros = [inicio]
+    para cada vertice v: perto[v] = d(v, inicio)
+    enquanto tamanho(centros) < k:
+        c = vertice nao escolhido com maior perto[c]
+        adicionar c a centros
+        para cada vertice v:
+            perto[v] = min(perto[v], d(v, c))
+    retornar centros
+\end{lstlisting}
+
+\noindent\textbf{Aperfeiçoamentos implementados.}
+Em vez de usar só um ponto inicial, executa-se a construção a partir de
+quatro posições determinísticas ($0$, $\lfloor n/3\rfloor$,
+$\lfloor 2n/3\rfloor$ e $n-1$) e escolhe-se a menor solução.
+Depois, tenta-se uma busca local com até duas passagens de trocas entre
+um centro ativo e um vértice não selecionado. Uma troca só é aceita se
+reduzir estritamente o raio. Usando as distâncias para o primeiro e para
+o segundo centro mais próximos, cada avaliação de troca requer
+$\bigO{n}$. O refinamento não invalida a garantia da
+Equação~\ref{eq:approx}, pois nunca aumenta o raio.
+
+\noindent\textbf{Custo.}
+Cada construção custa $\bigO{nk}$; quatro construções preservam essa
+ordem. Com $t$ passagens da busca local, o limite superior é
+$\bigO{tn^2k}$, além do pré-processamento comum.
+
+\subsection{Justificativa do fator 2}
+Ao selecionar $k$ centros pelo método mais distante e considerar um
+vértice adicional a distância $R$ da seleção, obtêm-se $k+1$ pontos
+separados dois a dois por pelo menos $R$. Como uma solução ótima distribui
+esses pontos entre apenas $k$ centros, dois necessariamente pertencem à
+mesma região atendida. Pela desigualdade triangular, a distância entre
+esses dois pontos é no máximo $2r^*$. Portanto, $R\leq 2r^*$.
+A escolha do melhor entre vários inícios e a melhoria por trocas só
+reduzem o raio, mantendo a mesma cota.
+
+\section{Algoritmo exato}
+O método exato transforma a busca em um conjunto finito de problemas
+de \emph{cobertura} e os resolve com busca em profundidade e
+\emph{branch-and-bound}. Para um raio candidato $R$, cada vértice $c$
+representa o conjunto de vértices atendidos
+\begin{equation}
+ S_c(R)=\{v\in V : d(v,c)\leq R\}.
+\end{equation}
+Existe uma solução de raio no máximo $R$ exatamente quando se pode
+selecionar até $k$ desses conjuntos de forma que a união cubra todo $V$.
+A decisão equivale ao sistema binário:
+\begin{align}
+ \sum_{c:\,d(v,c)\leq R}x_c &\geq 1 &&\forall\,v\in V,\\
+ \sum_{c\in V}x_c &\leq k,\\
+ x_c &\in\{0,1\}.\nonumber
+\end{align}
+
+Os raios candidatos são os valores distintos da matriz de distâncias.
+Uma busca binária verifica o menor raio viável, começando pelo intervalo
+limitado inferiormente por $\lceil r_{\mathrm{aprox}}/2\rceil$, consequência
+da garantia de fator 2, e superiormente pelo raio aproximado.
+O algoritmo de decisão utiliza vetores de bits \texttt{BitSet} para armazenar
+coberturas. A ramificação escolhe um vértice ainda não atendido e testa
+possíveis centros que o cobrem, priorizando centros que atendem mais pontos.
+
+\begin{lstlisting}[caption={Decisao exata para raio R.}]
+COBRE(R, centros_restantes, descobertos):
+    se todos os vertices estiverem cobertos: retornar VIAVEL
+    se centros_restantes == 0: retornar INVIAVEL
+    se teto(|descobertos| / maior_cobertura) > centros_restantes:
+        retornar INVIAVEL
+    se existem mais de centros_restantes vertices
+       mutuamente separados por distancias > 2*R:
+        retornar INVIAVEL
+    v = vertice descoberto com menos candidatos de centro
+    para cada candidato c que cobre v (maior ganho primeiro):
+        se COBRE(R, centros_restantes-1,
+                 descobertos sem cobertura(c)) == VIAVEL:
+            registrar c; retornar VIAVEL
+    retornar INVIAVEL
+\end{lstlisting}
+
+Também se eliminam ramificações com conjunto descoberto idêntico.
+A condição de empacotamento é válida porque dois vértices separados por
+mais de $2R$ não podem ser atendidos pelo mesmo centro. Quando a solução
+usa menos de $k$ centros, centros adicionais podem ser incluídos sem
+prejudicar o raio, de forma que a saída tenha $k$ centros.
+
+\noindent\textbf{Critério de parada.}
+A busca exata possui pior caso exponencial (a decisão é uma variante
+de cobertura de conjuntos). Por isso, há um limite configurável de tempo
+por instância. Se o prazo termina durante uma decisão, o programa retorna
+a melhor solução válida conhecida e informa \texttt{TEMPO\_ESGOTADO};
+\emph{nesse caso não afirma otimalidade}. O status
+\texttt{OPTIMO\_COMPROVADO} é emitido somente quando as decisões necessárias
+foram concluídas, provando a inexistência de raio melhor.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+\section{Implementação e validação}
+A solução foi implementada em Java e organizada conforme o TP01 da turma:
+\texttt{grafos/} para os fontes, \texttt{instancias/} para as entradas,
+\texttt{resultados/} para as evidências e \texttt{relatorio/} para TeX e PDF.
+As 40 entradas oficiais estão incluídas no pacote, bem como dez instâncias
+sintéticas adicionais. Cada arquivo oficial foi conferido por quantidade de
+vértices, arestas, centros e assinatura numérica (FNV-1a).
+
+\begin{table}[H]\centering\small
+\caption{Componentes da implementação.}
+\begin{tabular}{@{}p{5cm}p{7.2cm}@{}}\toprule
+Arquivo & Função \\ \midrule
+\texttt{GraphIO.java} & Leitura das instâncias OR-Library, tratamento de duplicatas e caminhos mínimos por Floyd--Warshall.\\
+\texttt{ApproxKCenter.java} & Escolha do vértice mais distante, quatro sementes e duas passagens de trocas locais.\\
+\texttt{ExactKCenter.java} & Busca binária no raio, decisão por cobertura e branch-and-bound.\\
+\texttt{Benchmark.java} & Execução dos dois métodos, limites de tempo e medição por instância.\\
+\texttt{GraphGenerator.java} & Preparação dos grafos sintéticos usados nos testes adicionais.\\
+\texttt{SelfTest.java} & Testes contra enumeração completa em casos pequenos.\\
+\bottomrule\end{tabular}
+\end{table}
+
+A suíte automatizada aprovou \textbf{131 verificações}, incluindo tratamento de
+arestas repetidas, caminhos mínimos, garantia de aproximação e igualdade
+entre algoritmo exato e enumeração exaustiva em exemplos pequenos.
+Como verificação adicional, as 80 escolhas de centros (40 do método aproximado
+e 40 da busca exata) foram conferidas por uma rotina independente em Python,
+com distâncias recalculadas por Dijkstra multiorigem (Python); os raios registrados em Java
+coincidiram com os raios calculados independentemente. Essa auditoria confirma
+\emph{validade dos centros e dos raios}; ela não prova que uma solução
+interrompida seja ótima.
+
+\section{Metodologia experimental}
+\subsection{Dados e métricas}
+Foram utilizadas \textbf{todas as 40 instâncias} \texttt{pmed1.txt} a
+\texttt{pmed40.txt} da OR-Library, de 100 a 900 vértices, com os valores
+$k$ e os raios de referência $r^*$ fornecidos na Tabela 1 do enunciado.
+As instâncias da OR-Library são inicialmente grafos ponderados esparsos;
+a matriz completa de distância foi produzida por Floyd--Warshall.
+Arestas paralelas foram tratadas de acordo com a especificação das entradas:
+a última ocorrência define o peso armazenado. Não foram usados os ótimos
+de $p$-medianas como referência para a função objetivo de $k$-centros.
+
+Para medir a eficácia, utilizou-se o raio $r(C)$ de cada solução, a diferença
+em relação ao valor de referência e o percentual
+\[
+\operatorname{gap}(C)=100\frac{r(C)-r^*}{r^*}\,\%.
+\]
+A eficiência foi medida em milissegundos com \texttt{System.nanoTime()},
+separadamente para pré-processamento, heurística e busca exata.
+O orçamento por instância do exato foi de \textbf{3000~ms}; na avaliação
+sintética, de 1000~ms. Resultados \texttt{TEMPO\_ESGOTADO} indicam
+soluções viáveis, \emph{não} certificados de otimalidade. Tempos
+com corte não representam o tempo necessário para terminar o algoritmo.
+Os valores são de uma execução por entrada, sem repetições ou intervalos
+de confiança; devem ser interpretados como estudo experimental descritivo.
+
+\section{Resultados das 40 instâncias oficiais}
+\subsection{Qualidade das soluções}
+\begin{longtable}{@{}lrrrrrrc@{}}
+\caption{Resultados Java: raios das duas abordagens nas 40 instâncias; estado do método exato.}\\
+\toprule Caso & $n$ & $k$ & $r^*$ & $r_A$ & Gap (\%) & $r_E$ & Estado\\ \midrule
+\endfirsthead
+\toprule Caso & $n$ & $k$ & $r^*$ & $r_A$ & Gap (\%) & $r_E$ & Estado\\ \midrule
+\endhead
+pmed1 & 100 & 5 & 127 & 149 & 17,32 & 127 & OC \\
+pmed2 & 100 & 10 & 98 & 117 & 19,39 & 98 & OC \\
+pmed3 & 100 & 10 & 93 & 123 & 32,26 & 93 & OC \\
+pmed4 & 100 & 20 & 74 & 98 & 32,43 & 74 & OC \\
+pmed5 & 100 & 33 & 48 & 64 & 33,33 & 48 & OC \\
+pmed6 & 200 & 5 & 84 & 96 & 14,29 & 84 & OC \\
+pmed7 & 200 & 10 & 64 & 86 & 34,38 & 64 & TE \\
+pmed8 & 200 & 20 & 55 & 71 & 29,09 & 71 & TE \\
+pmed9 & 200 & 40 & 37 & 51 & 37,84 & 38 & TE \\
+pmed10 & 200 & 67 & 20 & 29 & 45,00 & 20 & TE \\
+pmed11 & 300 & 5 & 59 & 61 & 3,39 & 59 & OC \\
+pmed12 & 300 & 10 & 51 & 65 & 27,45 & 65 & TE \\
+pmed13 & 300 & 30 & 35 & 53 & 51,43 & 40 & TE \\
+pmed14 & 300 & 60 & 26 & 36 & 38,46 & 27 & TE \\
+pmed15 & 300 & 100 & 18 & 24 & 33,33 & 18 & TE \\
+pmed16 & 400 & 5 & 47 & 51 & 8,51 & 47 & OC \\
+pmed17 & 400 & 10 & 39 & 47 & 20,51 & 47 & TE \\
+pmed18 & 400 & 40 & 28 & 41 & 46,43 & 31 & TE \\
+pmed19 & 400 & 80 & 18 & 28 & 55,56 & 21 & TE \\
+pmed20 & 400 & 133 & 13 & 18 & 38,46 & 13 & TE \\
+pmed21 & 500 & 5 & 40 & 44 & 10,00 & 40 & OC \\
+pmed22 & 500 & 10 & 38 & 49 & 28,95 & 49 & TE \\
+pmed23 & 500 & 50 & 22 & 32 & 45,45 & 24 & TE \\
+pmed24 & 500 & 100 & 15 & 22 & 46,67 & 16 & TE \\
+pmed25 & 500 & 167 & 11 & 15 & 36,36 & 11 & TE \\
+pmed26 & 600 & 5 & 38 & 42 & 10,53 & 38 & OC \\
+pmed27 & 600 & 10 & 32 & 37 & 15,62 & 33 & TE \\
+pmed28 & 600 & 60 & 18 & 28 & 55,56 & 21 & TE \\
+pmed29 & 600 & 120 & 13 & 19 & 46,15 & 14 & TE \\
+pmed30 & 600 & 200 & 9 & 13 & 44,44 & 10 & TE \\
+pmed31 & 700 & 5 & 30 & 35 & 16,67 & 30 & OC \\
+pmed32 & 700 & 10 & 29 & 35 & 20,69 & 35 & TE \\
+pmed33 & 700 & 70 & 15 & 25 & 66,67 & 19 & TE \\
+pmed34 & 700 & 140 & 11 & 17 & 54,55 & 13 & TE \\
+pmed35 & 800 & 5 & 30 & 34 & 13,33 & 30 & OC \\
+pmed36 & 800 & 10 & 27 & 34 & 25,93 & 34 & TE \\
+pmed37 & 800 & 80 & 15 & 24 & 60,00 & 18 & TE \\
+pmed38 & 900 & 5 & 29 & 31 & 6,90 & 29 & OC \\
+pmed39 & 900 & 10 & 23 & 30 & 30,43 & 30 & TE \\
+pmed40 & 900 & 90 & 13 & 20 & 53,85 & 15 & TE \\
+\bottomrule
+\end{longtable}
+\noindent\textbf{Legenda:} OC = ótimo comprovado; TE = tempo esgotado,
+com melhor solução viável. $r_A$ = raio aproximado; $r_E$ = melhor raio
+encontrado pela busca exata; $r^*$ = referência da atividade.
+
+A solução aproximada teve gap médio de \textbf{32,69\%}
+(mediana de 32,88\%), com mínimo de 3,39\% em
+\texttt{pmed11} e máximo de 66,67\% em \texttt{pmed33}.
+A busca exata reduziu estritamente o raio da aproximação em
+\textbf{33 dos 40 casos}; o gap médio do melhor incumbente foi de
+\textbf{9,15\%}. Em 18 casos, esse raio coincidiu com
+a referência, mas apenas 13 obtiveram certificação durante a busca:
+os 27 restantes atingiram o limite de 3000~ms.
+
+\begin{figure}[H]\centering
+\begin{tikzpicture}
+\begin{axis}[width=0.94\textwidth,height=5.4cm,xmin=0,xmax=41,
+ xtick={1,5,10,15,20,25,30,35,40},ylabel={Gap da heurística (\%)},
+ xlabel={Índice da instância},ymajorgrids=true,grid style={gray!20}]
+\addplot[only marks,mark=*,black,mark size=1.8pt] coordinates {(1,17.3228) (2,19.3878) (3,32.2581) (4,32.4324) (5,33.3333) (6,14.2857) (7,34.3750) (8,29.0909) (9,37.8378) (10,45.0000) (11,3.3898) (12,27.4510) (13,51.4286) (14,38.4615) (15,33.3333) (16,8.5106) (17,20.5128) (18,46.4286) (19,55.5556) (20,38.4615) (21,10.0000) (22,28.9474) (23,45.4545) (24,46.6667) (25,36.3636) (26,10.5263) (27,15.6250) (28,55.5556) (29,46.1538) (30,44.4444) (31,16.6667) (32,20.6897) (33,66.6667) (34,54.5455) (35,13.3333) (36,25.9259) (37,60.0000) (38,6.8966) (39,30.4348) (40,53.8462)};
+\end{axis}\end{tikzpicture}
+\caption{Desvio percentual do método aproximado nas 40 instâncias oficiais.}
+\end{figure}
+
+\subsection{Tempos observados e limites da busca}
+\begin{longtable}{@{}lrrrr@{}}
+\caption{Tempos dos experimentos Java em milissegundos (uma execução por entrada).}\\
+\toprule Caso & $t_{FW}$ (ms) & $t_A$ (ms) & $t_E$ (ms) & LB do exato\\ \midrule
+\endfirsthead
+\toprule Caso & $t_{FW}$ (ms) & $t_A$ (ms) & $t_E$ (ms) & LB do exato\\ \midrule
+\endhead
+pmed1 & 4,92 & 2,79 & 123,73 & 127 \\
+pmed2 & 6,03 & 4,65 & 564,50 & 98 \\
+pmed3 & 5,58 & 6,41 & 281,49 & 93 \\
+pmed4 & 7,39 & 8,02 & 1917,06 & 74 \\
+pmed5 & 5,61 & 8,30 & 354,59 & 48 \\
+pmed6 & 29,67 & 6,49 & 408,84 & 84 \\
+pmed7 & 32,18 & 9,99 & 3001,40 & 59 \\
+pmed8 & 44,19 & 14,07 & 3119,99 & 36 \\
+pmed9 & 63,21 & 32,16 & 3002,09 & 32 \\
+pmed10 & 28,51 & 26,71 & 3001,77 & 19 \\
+pmed11 & 158,43 & 19,53 & 149,19 & 59 \\
+pmed12 & 164,98 & 17,06 & 3002,51 & 33 \\
+pmed13 & 155,69 & 34,30 & 3002,65 & 27 \\
+pmed14 & 201,76 & 38,95 & 3050,10 & 23 \\
+pmed15 & 84,88 & 34,76 & 3002,88 & 15 \\
+pmed16 & 145,18 & 20,29 & 136,52 & 47 \\
+pmed17 & 142,91 & 9,62 & 3001,14 & 24 \\
+pmed18 & 147,43 & 46,50 & 3003,86 & 21 \\
+pmed19 & 141,24 & 42,10 & 3001,26 & 14 \\
+pmed20 & 134,26 & 47,73 & 3001,10 & 11 \\
+pmed21 & 294,85 & 14,20 & 1098,90 & 40 \\
+pmed22 & 426,19 & 37,45 & 3002,34 & 25 \\
+pmed23 & 347,73 & 118,46 & 3001,07 & 16 \\
+pmed24 & 239,09 & 133,99 & 3001,91 & 11 \\
+pmed25 & 273,93 & 115,61 & 3001,43 & 8 \\
+pmed26 & 429,81 & 30,87 & 786,14 & 38 \\
+pmed27 & 336,14 & 68,90 & 3001,13 & 29 \\
+pmed28 & 476,89 & 64,42 & 3004,60 & 14 \\
+pmed29 & 1081,35 & 187,47 & 3001,84 & 10 \\
+pmed30 & 538,20 & 110,69 & 3002,54 & 7 \\
+pmed31 & 835,02 & 19,64 & 2790,40 & 30 \\
+pmed32 & 526,99 & 41,93 & 3001,42 & 18 \\
+pmed33 & 520,90 & 86,60 & 3002,81 & 13 \\
+pmed34 & 513,50 & 111,02 & 3000,89 & 9 \\
+pmed35 & 1034,18 & 31,56 & 557,17 & 30 \\
+pmed36 & 1331,76 & 87,78 & 3003,23 & 17 \\
+pmed37 & 792,11 & 115,53 & 3001,57 & 12 \\
+pmed38 & 1191,76 & 23,60 & 225,54 & 29 \\
+pmed39 & 1255,04 & 49,03 & 3002,51 & 15 \\
+pmed40 & 1207,54 & 307,02 & 3002,38 & 10 \\
+\bottomrule
+\end{longtable}
+O campo LB registra o limite inferior retornado pelo método exato. Se
+a busca termina, o valor coincide com o ótimo. Nos casos TE,
+é apenas uma cota inferior conhecida, com solução viável acima ou igual.
+
+\begin{figure}[H]\centering
+\begin{tikzpicture}
+\begin{semilogyaxis}[width=0.94\textwidth,height=5.6cm,
+ xmin=0,xmax=41,xtick={1,5,10,15,20,25,30,35,40},
+ xlabel={Índice da instância},ylabel={Tempo (ms; escala logarítmica)},
+ ymajorgrids=true,grid style={gray!20},legend pos=north west]
+\addplot[only marks,mark=*,black] coordinates {(1,2.7870) (2,4.6520) (3,6.4050) (4,8.0180) (5,8.3020) (6,6.4930) (7,9.9910) (8,14.0670) (9,32.1590) (10,26.7060) (11,19.5340) (12,17.0630) (13,34.2980) (14,38.9530) (15,34.7600) (16,20.2850) (17,9.6240) (18,46.4990) (19,42.0970) (20,47.7320) (21,14.1990) (22,37.4480) (23,118.4580) (24,133.9900) (25,115.6150) (26,30.8730) (27,68.8960) (28,64.4230) (29,187.4710) (30,110.6900) (31,19.6370) (32,41.9320) (33,86.6030) (34,111.0220) (35,31.5580) (36,87.7770) (37,115.5290) (38,23.6000) (39,49.0310) (40,307.0190)};
+\addplot[only marks,mark=square*,gray] coordinates {(1,123.7270) (2,564.5000) (3,281.4910) (4,1917.0620) (5,354.5890) (6,408.8390) (7,3001.3980) (8,3119.9880) (9,3002.0870) (10,3001.7710) (11,149.1920) (12,3002.5070) (13,3002.6510) (14,3050.1020) (15,3002.8780) (16,136.5180) (17,3001.1360) (18,3003.8600) (19,3001.2570) (20,3001.0970) (21,1098.9040) (22,3002.3450) (23,3001.0710) (24,3001.9060) (25,3001.4250) (26,786.1450) (27,3001.1320) (28,3004.5980) (29,3001.8400) (30,3002.5400) (31,2790.4040) (32,3001.4230) (33,3002.8130) (34,3000.8910) (35,557.1660) (36,3003.2340) (37,3001.5670) (38,225.5360) (39,3002.5080) (40,3002.3840)};
+\legend{Aproximado,Exato}
+\end{semilogyaxis}\end{tikzpicture}
+\caption{Tempos dos dois métodos; valores do exato incluem encerramentos por limite.}
+\end{figure}
+
+\subsection{Resultados agrupados por quantidade de vértices}
+\begin{table}[H]\centering\scriptsize
+\caption{Gaps médios por tamanho, medianas de tempo e certificados da busca exata.}
+\resizebox{\textwidth}{!}{\begin{tabular}{@{}rrrrrrr@{}}\toprule
+$n$ & Casos & Gap aprox. (\%) & Gap exato (\%) & Mediana $t_A$ & Mediana $t_E$ & Provas\\ \midrule
+100 & 5 & 26,95 & 0,00 & 6,41 & 354,59 & 5 \\
+200 & 5 & 32,12 & 6,36 & 14,07 & 3001,77 & 1 \\
+300 & 5 & 30,81 & 9,12 & 34,30 & 3002,65 & 1 \\
+400 & 5 & 33,89 & 9,58 & 42,10 & 3001,14 & 1 \\
+500 & 5 & 33,49 & 8,94 & 115,61 & 3001,43 & 1 \\
+600 & 5 & 34,46 & 7,72 & 68,90 & 3001,84 & 1 \\
+700 & 4 & 39,64 & 16,38 & 64,27 & 3001,16 & 1 \\
+800 & 3 & 33,09 & 15,31 & 87,78 & 3001,57 & 1 \\
+900 & 3 & 30,39 & 15,27 & 49,03 & 3002,38 & 1 \\
+\bottomrule\end{tabular}}
+\end{table}
+\begin{figure}[H]\centering
+\begin{tikzpicture}
+\begin{axis}[width=0.94\textwidth,height=5.4cm,xlabel={Número de vértices},
+ ylabel={Gap médio (\%)},xtick={100,200,300,400,500,600,700,800,900},
+ ymajorgrids=true,grid style={gray!20},legend pos=north west]
+\addplot[black,mark=*] coordinates {(100,26.9469) (200,32.1179) (300,30.8129) (400,33.8938) (500,33.4864) (600,34.4610) (700,39.6421) (800,33.0864) (900,30.3925)};
+\addplot[gray,mark=square*] coordinates {(100,0.0000) (200,6.3587) (300,9.1166) (400,9.5788) (500,8.9410) (600,7.7190) (700,16.3845) (800,15.3086) (900,15.2731)};
+\legend{Aproximado,Busca exata (melhor raio)}
+\end{axis}\end{tikzpicture}
+\caption{Qualidade média por quantidade de vértices, sem isolar o efeito de $k$.}
+\end{figure}
+
+A mediana de tempo da aproximação foi de \textbf{34,53~ms}; a
+busca exata teve mediana de \textbf{3001,41~ms}, influenciada
+pelo limite imposto. O pré-processamento por Floyd--Warshall levou, em média,
+383,93~ms (máximo de 1331,76~ms), custo comum às
+duas abordagens. Entre grupos, tanto o parâmetro $k$ quanto a estrutura
+das distâncias variam. Assim, diferenças de gap entre tamanhos não
+podem ser atribuídas exclusivamente ao número de vértices.
+
+\section{Experimentos complementares em grafos sintéticos}
+O conjunto adicional compreende dez grafos gerados por sementes fixas,
+com tamanhos de 10 a 900 vértices. São úteis para observar comportamento,
+mas \emph{não substituem} as 40 instâncias oficiais obrigatórias.
+\begin{table}[H]\centering\scriptsize
+\caption{Resultados sintéticos Java; tempos em milissegundos.}
+\resizebox{\textwidth}{!}{\begin{tabular}{@{}rrrrrrrc@{}}\toprule
+$n$ & $k$ & $t_{FW}$ & $r_A$ & $t_A$ & $r_E$ & $t_E$ & Estado\\ \midrule
+10 & 2 & 0,03 & 85 & 0,98 & 85 & 2,14 & OC \\
+12 & 3 & 0,06 & 49 & 0,37 & 45 & 0,34 & OC \\
+16 & 3 & 0,18 & 75 & 0,15 & 75 & 0,42 & OC \\
+20 & 4 & 0,30 & 86 & 0,10 & 86 & 0,84 & OC \\
+40 & 5 & 2,23 & 94 & 0,66 & 86 & 10,89 & OC \\
+100 & 10 & 8,96 & 117 & 2,98 & 90 & 856,23 & OC \\
+200 & 20 & 17,48 & 126 & 15,64 & 126 & 1000,28 & TE \\
+400 & 40 & 44,46 & 138 & 113,16 & 103 & 1000,21 & TE \\
+600 & 60 & 264,24 & 146 & 24,10 & 109 & 1000,18 & TE \\
+900 & 90 & 389,52 & 141 & 108,68 & 106 & 1000,17 & TE \\
+\bottomrule\end{tabular}}
+\end{table}
+\begin{figure}[H]\centering
+\begin{tikzpicture}
+\begin{semilogyaxis}[width=0.94\textwidth,height=5.2cm,
+ xmin=0,xmax=950,xtick={10,100,200,400,600,900},
+ xlabel={Número de vértices},ylabel={Tempo (ms, escala logarítmica)},
+ ymajorgrids=true,grid style={gray!20},legend pos=north west]
+\addplot[black,mark=*] coordinates {(10,0.9840) (12,0.3670) (16,0.1510) (20,0.0980) (40,0.6610) (100,2.9750) (200,15.6380) (400,113.1630) (600,24.0980) (900,108.6840)};
+\addplot[gray,mark=square*] coordinates {(10,0.0320) (12,0.0600) (16,0.1780) (20,0.3000) (40,2.2320) (100,8.9620) (200,17.4770) (400,44.4570) (600,264.2380) (900,389.5250)};
+\legend{Aproximação,Floyd--Warshall}
+\end{semilogyaxis}\end{tikzpicture}
+\caption{Escalabilidade da aproximação e preparação no conjunto sintético.}
+\end{figure}
+
+\section{Discussão dos resultados}
+A heurística de Gonzalez fornece uma garantia de fator 2 para distâncias
+métricas. As sementes múltiplas e as trocas locais não pioram o raio,
+portanto mantêm essa garantia. Sua grande vantagem é o custo computacional
+polinomial, que permitiu resolver todas as entradas oficiais rapidamente
+após o pré-processamento comum.
+
+O método exato emprega teste de cobertura e explora possibilidades de
+selecionar centros. A combinação de busca binária no raio, limitação por
+cobertura máxima e empacotamento reduz muitos ramos, mas a complexidade
+combinatória permanece. A comparação evidencia essa diferença: o método
+exato conseguiu melhorar a incumbente em 33 casos, porém não
+certificou o ótimo em 27 instâncias ao orçamento escolhido.
+Quando o valor de referência é alcançado num caso TE, isso não altera
+o status: não houve certificação pela busca implementada.
+
+É importante distinguir \emph{eficácia} (qualidade do raio) de
+\emph{eficiência} (tempo). O exato exibiu frequentemente um raio menor,
+mas consumiu muito mais tempo; o aproximado foi mais rápido e teve
+uma garantia teórica mesmo quando seu raio ficou acima da referência.
+As medições de uma única execução e a influência do JIT na JVM impedem
+uma conclusão estatística sobre tempos precisos. A análise é comparativa
+e descritiva, apoiada por todas as 40 instâncias oficiais.
+
+\section{Reprodutibilidade}
+Os 40 arquivos oficiais da OR-Library estão incluídos em
+\texttt{instancias/}, de modo que a execução não depende de conexão
+com a Internet. Assim como no TP01, os scripts da raiz apenas compilam
+e executam os testes automatizados:
+\begin{lstlisting}
+sh executar_testes.sh
+# ou, no Windows:
+executar_testes.bat
+\end{lstlisting}
+Para repetir a campanha oficial após a compilação, execute:
+\begin{lstlisting}
+java -cp out grafos.Main bench --dir instancias \
+  --csv resultados/orlib.csv --limite-ms 3000
+\end{lstlisting}
+Os raios e tempos medidos estão em \path{resultados/orlib.csv}.
+A lista de centros encontra-se em \path{resultados/centros.txt},
+e os testes sintéticos em \path{resultados/sinteticos.csv}.
+O relatório está disponível em PDF e em fonte TeX independente, que pode
+ser compilada no diretório \texttt{relatorio/} com duas passagens do
+\texttt{pdflatex}. O registro da auditoria independente acompanha os
+demais resultados, sem exigir scripts adicionais para a entrega.
+
+\section{Conclusão}
+Foram implementadas e avaliadas duas abordagens para o problema dos
+$k$-centros, atendendo às 40 entradas oficiais da atividade.
+A implementação aproximada obteve gap médio de 32,69\% e ofereceu
+soluções viáveis em todos os casos. A busca exata reduziu o raio em
+33 casos, comprovou 13 ótimos e interrompeu 27
+execuções pelo limite de tempo, mantendo os melhores centros encontrados.
+Os arquivos-fonte, dados, tempos, raios, testes e PDF/TeX acompanham a
+entrega, com procedimentos de reprodução e verificação independentes.
+
+\begin{thebibliography}{9}
+\bibitem{beasley}
+BEASLEY, J. E. A note on solving large p-median problems.
+\textit{European Journal of Operational Research}, v. 21, p. 270--273, 1985.
+\bibitem{orlib}
+BEASLEY, J. E. OR-Library: p-median -- uncapacitated. Disponível em:
+\url{https://people.brunel.ac.uk/~mastjjb/jeb/orlib/pmedinfo.html}.
+Acesso em: 16 nov. 2026.
+\bibitem{gonzalez}
+GONZALEZ, T. F. Clustering to minimize the maximum intercluster distance.
+\textit{Theoretical Computer Science}, v. 38, p. 293--306, 1985.
+\bibitem{enunciado}
+PUC MINAS. \textit{Teoria dos Grafos e Computabilidade: Trabalho Prático n.º 02}.
+Enunciado disponibilizado pela disciplina, 2025.
+
+\bibitem{espelho}
+RAFFAELLO. P-Median: Problems/pmed1--pmed40. Repositório público no GitHub.
+Disponível em: \url{https://github.com/Raffaello/P-Median/tree/master/Problems}.
+Acesso em: 16 nov. 2026.
+\bibitem{yurtkuran}
+YURTKURAN, A.; EMEL, E. A Modified Artificial Bee Colony Algorithm for
+p-Center Problems. \textit{The Scientific World Journal}, 2014.
+Disponível em: \url{https://pmc.ncbi.nlm.nih.gov/articles/PMC3926279/}.
+\end{thebibliography}
+
+\end{document}

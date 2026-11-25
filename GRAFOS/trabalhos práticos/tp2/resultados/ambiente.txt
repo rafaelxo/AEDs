@@ -1,0 +1,9 @@
+Data do experimento: 17/11/2026
+Ambiente: Linux x86_64, JDK OpenJDK 21.0.12.1, Python 3.13.5, pdfTeX 1.40.26
+40 arquivos oficiais: OR-Library recebidos do usuário em pmed_1_a_40.zip, validados por conteúdo com FNV-1a e estrutura (n,m,k)
+Métodos executados em todas as 40 instâncias: Java, aproximação Gonzalez (4 sementes) + 2 trocas locais; busca exata cobertura de conjuntos/branch-and-bound
+Cronometragem: System.nanoTime(); uma execução por método e instância; preparação (Floyd--Warshall) contabilizada separadamente
+Orçamento do exato: 3000 ms por entrada oficial; TEMPO_ESGOTADO é uma solução viável, não certificado de ótimo
+Instâncias sintéticas: n=10,12,16,20,40,100,200,400,600,900, exato com 1000 ms
+A execução foi realizada por lotes sequenciais para preservar o CSV em caso de interrupção do ambiente, sem mudar o algoritmo ou os parâmetros
+Bibliografia e referências de raio: enunciado tgc-cc-tp02-2025-01, Tabela 1 (não pmedopt.txt)

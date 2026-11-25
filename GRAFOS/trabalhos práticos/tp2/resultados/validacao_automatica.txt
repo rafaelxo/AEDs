@@ -1,0 +1,1 @@
+OK: 131 assercoes; duplicatas, Floyd, solucao, 2-aproximacao e exato vs enumeracao.

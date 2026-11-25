@@ -1,0 +1,45 @@
+VALIDACAO INDEPENDENTE - 40 INSTANCIAS / 80 SOLUCOES
+Recalculo de raios com Dijkstra multiorigem, sem reutilizar o Floyd--Warshall Java.
+Cada solucao contem exatamente k centros distintos, com indices validos.
+AVISO: verifica viabilidade/raios; nao certifica otimalidade do exato interrompido.
+
+pmed01: n=100, k=5; duas solucoes viaveis, raios iguais ao CSV Java
+pmed02: n=100, k=10; duas solucoes viaveis, raios iguais ao CSV Java
+pmed03: n=100, k=10; duas solucoes viaveis, raios iguais ao CSV Java
+pmed04: n=100, k=20; duas solucoes viaveis, raios iguais ao CSV Java
+pmed05: n=100, k=33; duas solucoes viaveis, raios iguais ao CSV Java
+pmed06: n=200, k=5; duas solucoes viaveis, raios iguais ao CSV Java
+pmed07: n=200, k=10; duas solucoes viaveis, raios iguais ao CSV Java
+pmed08: n=200, k=20; duas solucoes viaveis, raios iguais ao CSV Java
+pmed09: n=200, k=40; duas solucoes viaveis, raios iguais ao CSV Java
+pmed10: n=200, k=67; duas solucoes viaveis, raios iguais ao CSV Java
+pmed11: n=300, k=5; duas solucoes viaveis, raios iguais ao CSV Java
+pmed12: n=300, k=10; duas solucoes viaveis, raios iguais ao CSV Java
+pmed13: n=300, k=30; duas solucoes viaveis, raios iguais ao CSV Java
+pmed14: n=300, k=60; duas solucoes viaveis, raios iguais ao CSV Java
+pmed15: n=300, k=100; duas solucoes viaveis, raios iguais ao CSV Java
+pmed16: n=400, k=5; duas solucoes viaveis, raios iguais ao CSV Java
+pmed17: n=400, k=10; duas solucoes viaveis, raios iguais ao CSV Java
+pmed18: n=400, k=40; duas solucoes viaveis, raios iguais ao CSV Java
+pmed19: n=400, k=80; duas solucoes viaveis, raios iguais ao CSV Java
+pmed20: n=400, k=133; duas solucoes viaveis, raios iguais ao CSV Java
+pmed21: n=500, k=5; duas solucoes viaveis, raios iguais ao CSV Java
+pmed22: n=500, k=10; duas solucoes viaveis, raios iguais ao CSV Java
+pmed23: n=500, k=50; duas solucoes viaveis, raios iguais ao CSV Java
+pmed24: n=500, k=100; duas solucoes viaveis, raios iguais ao CSV Java
+pmed25: n=500, k=167; duas solucoes viaveis, raios iguais ao CSV Java
+pmed26: n=600, k=5; duas solucoes viaveis, raios iguais ao CSV Java
+pmed27: n=600, k=10; duas solucoes viaveis, raios iguais ao CSV Java
+pmed28: n=600, k=60; duas solucoes viaveis, raios iguais ao CSV Java
+pmed29: n=600, k=120; duas solucoes viaveis, raios iguais ao CSV Java
+pmed30: n=600, k=200; duas solucoes viaveis, raios iguais ao CSV Java
+pmed31: n=700, k=5; duas solucoes viaveis, raios iguais ao CSV Java
+pmed32: n=700, k=10; duas solucoes viaveis, raios iguais ao CSV Java
+pmed33: n=700, k=70; duas solucoes viaveis, raios iguais ao CSV Java
+pmed34: n=700, k=140; duas solucoes viaveis, raios iguais ao CSV Java
+pmed35: n=800, k=5; duas solucoes viaveis, raios iguais ao CSV Java
+pmed36: n=800, k=10; duas solucoes viaveis, raios iguais ao CSV Java
+pmed37: n=800, k=80; duas solucoes viaveis, raios iguais ao CSV Java
+pmed38: n=900, k=5; duas solucoes viaveis, raios iguais ao CSV Java
+pmed39: n=900, k=10; duas solucoes viaveis, raios iguais ao CSV Java
+pmed40: n=900, k=90; duas solucoes viaveis, raios iguais ao CSV Java
